@@ -1,6 +1,8 @@
 // src/app/page.tsx (No Initial Pins)
 "use client";
 
+import { supabase } from "@/lib/supabaseClient";  // Import the Supabase client
+
 import React, { useState, useEffect, useRef } from "react";
 import dynamic from 'next/dynamic';
 import { motion } from "framer-motion";
@@ -80,30 +82,47 @@ export default function LandingPage() {
     setSubmitSuccess(false);
     setSubmitError(null);
     console.log("Waitlist Entry:", { email, country, language });
+    
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log("Successfully submitted to waitlist!");
-      const { lat, lng } = getCoordsForCountry(country);
-      console.log(`Approx coords for ${country}: lat=${lat}, lng=${lng}`);
-      const newPin: Pin = {
-          lat, lng, size: 0.6, color: "#FF5C5C", label: `Signup from ${country}!`
-      };
-      setPins((prev) => [...prev, newPin]);
-      globeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      if (globeEl.current) {
-        globeEl.current.pointOfView({ lat: newPin.lat, lng: newPin.lng, altitude: 1.5 }, 1500);
-      }
-      setEmail(""); setCountry(""); setLanguage("");
-      setSubmitSuccess(true);
-      setTimeout(() => setSubmitSuccess(false), 4000);
+        // Insert into the Supabase database
+        const { data, error } = await supabase
+            .from('waitlist') // Assuming you have a table named "waitlist"
+            .insert([
+                {
+                    email,
+                    country,
+                    language,
+                    created_at: new Date().toISOString(), // You may want to add a timestamp
+                }
+            ]);
+
+        if (error) {
+            throw error;
+        }
+
+        // Log success, insert new pin, and reset form
+        console.log("Successfully submitted to waitlist!", data);
+        
+        const { lat, lng } = getCoordsForCountry(country);
+        const newPin: Pin = {
+            lat, lng, size: 0.6, color: "#FF5C5C", label: `Signup from ${country}!`
+        };
+        setPins((prev) => [...prev, newPin]);
+        globeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (globeEl.current) {
+            globeEl.current.pointOfView({ lat: newPin.lat, lng: newPin.lng, altitude: 1.5 }, 1500);
+        }
+        setEmail(""); setCountry(""); setLanguage("");
+        setSubmitSuccess(true);
+        setTimeout(() => setSubmitSuccess(false), 4000);
     } catch (error) {
-      console.error("Submission failed:", error);
-      setSubmitError("Submission failed. Please try again.");
-      setTimeout(() => setSubmitError(null), 4000);
+        console.error("Submission failed:", error);
+        setSubmitError("Submission failed. Please try again.");
+        setTimeout(() => setSubmitError(null), 4000);
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
-  };
+};
 
   // --- Effects ---
   useEffect(() => {
