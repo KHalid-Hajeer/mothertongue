@@ -1,102 +1,212 @@
-import Image from "next/image";
+// src/app/page.tsx (No Initial Pins)
+"use client";
 
-export default function Home() {
+import React, { useState, useEffect, useRef } from "react";
+import dynamic from 'next/dynamic';
+import { motion } from "framer-motion";
+import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { GlobeMethods } from "react-globe.gl";
+import {
+  TestTubes,
+  Users,
+  Film,
+  Gamepad2,
+  MessageCircle,
+  BarChart3,
+  CheckCircle,
+} from "lucide-react";
+
+// --- Helper: Basic Country to Coords Lookup ---
+const countryCoords: { [key: string]: { lat: number; lng: number } } = {
+  usa: { lat: 39.8, lng: -98.5 },
+  canada: { lat: 56.1, lng: -106.3 },
+  mexico: { lat: 23.6, lng: -102.5 },
+  uk: { lat: 55.3, lng: -3.4 },
+  france: { lat: 46.2, lng: 2.2 },
+  germany: { lat: 51.1, lng: 10.4 },
+  spain: { lat: 40.4, lng: -3.7 },
+  italy: { lat: 41.8, lng: 12.5 },
+  japan: { lat: 36.2, lng: 138.2 },
+  australia: { lat: -25.2, lng: 133.7 },
+  brazil: { lat: -14.2, lng: -51.9 },
+  india: { lat: 20.5, lng: 78.9 },
+};
+
+function getCoordsForCountry(countryName: string): { lat: number; lng: number } {
+  const lookupName = countryName.toLowerCase().trim();
+  return countryCoords[lookupName] || { lat: Math.random() * 60 - 30, lng: Math.random() * 180 - 90 };
+}
+
+// --- Dynamically import the Globe component ---
+const DynamicGlobe = dynamic(
+  () => import('react-globe.gl'),
+  {
+    ssr: false,
+    loading: () => <div className="w-full h-[75vh] flex items-center justify-center bg-gray-200/50"><p className="text-gray-500">Loading Globe...</p></div>
+  }
+);
+
+// --- Types ---
+type Pin = { lat: number; lng: number; size: number; color: string; label?: string; };
+type Feature = { title: string; desc: string; icon: React.ReactNode; };
+
+// --- Component ---
+export default function LandingPage() {
+  // --- State ---
+  const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("");
+  const [language, setLanguage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pins, setPins] = useState<Pin[]>([]); // Starts empty
+
+  // --- Refs ---
+  const globeEl = useRef<GlobeMethods | undefined>(undefined);
+  const globeSectionRef = useRef<HTMLDivElement>(null);
+
+  // --- Handlers ---
+  // (handleSubmit remains the same as the previous version)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !country || !language) {
+        setSubmitError("Please fill in all required fields.");
+        setTimeout(() => setSubmitError(null), 3000);
+        return;
+    }
+    setIsSubmitting(true);
+    setSubmitSuccess(false);
+    setSubmitError(null);
+    console.log("Waitlist Entry:", { email, country, language });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("Successfully submitted to waitlist!");
+      const { lat, lng } = getCoordsForCountry(country);
+      console.log(`Approx coords for ${country}: lat=${lat}, lng=${lng}`);
+      const newPin: Pin = {
+          lat, lng, size: 0.6, color: "#FF5C5C", label: `Signup from ${country}!`
+      };
+      setPins((prev) => [...prev, newPin]);
+      globeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (globeEl.current) {
+        globeEl.current.pointOfView({ lat: newPin.lat, lng: newPin.lng, altitude: 1.5 }, 1500);
+      }
+      setEmail(""); setCountry(""); setLanguage("");
+      setSubmitSuccess(true);
+      setTimeout(() => setSubmitSuccess(false), 4000);
+    } catch (error) {
+      console.error("Submission failed:", error);
+      setSubmitError("Submission failed. Please try again.");
+      setTimeout(() => setSubmitError(null), 4000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- Effects ---
+  useEffect(() => {
+    // Initial globe setup
+    const timerId = setTimeout(() => {
+        if (globeEl.current) {
+            const controls = globeEl.current.controls();
+            controls.enableZoom = false;
+            controls.enablePan = false;
+            controls.enableRotate = false;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.4;
+            globeEl.current.pointOfView({ lat: 20, lng: 0, altitude: 2.2 }, 2000);
+        }
+    }, 100);
+
+    // --- REMOVED INITIAL PINS GENERATION ---
+    // const initialPins: Pin[] = Array.from({ length: 15 }).map(() => ({ ... }));
+    // setPins(initialPins);
+    // --- END REMOVAL ---
+
+    return () => clearTimeout(timerId);
+  }, []); // Empty dependency array ensures this runs only once on mount
+
+  // --- Data ---
+   const features: Feature[] = [
+     { title: "Adaptive Test", desc: "Smart placement using ELO and IRT-style scaling.", icon: <TestTubes className="w-6 h-6 text-[#2E5A60] mb-2" /> },
+     { title: "Pod System", desc: "Weekly group rotations based on your level.", icon: <Users className="w-6 h-6 text-[#2E5A60] mb-2" /> },
+     { title: "Immersive Media", desc: "Curated texts and YouTube playlists that spark real learning.", icon: <Film className="w-6 h-6 text-[#2E5A60] mb-2" /> },
+     { title: "Gamified Challenges", desc: "Daily writing prompts, peer-reviewed scoring, and rewards.", icon: <Gamepad2 className="w-6 h-6 text-[#2E5A60] mb-2" /> },
+     { title: "Live Chat", desc: "Simple group chats to practice, connect, and stay consistent.", icon: <MessageCircle className="w-6 h-6 text-[#2E5A60] mb-2" /> },
+     { title: "Track Your Growth", desc: "Progress bars, ELO trends, and personalized insights.", icon: <BarChart3 className="w-6 h-6 text-[#2E5A60] mb-2" /> },
+   ];
+
+  // --- Render ---
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F0E6] via-[#C6E2DD] to-[#B0D1D4] text-gray-900 flex flex-col items-center px-4">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      {/* Hero Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+        className="w-full text-center max-w-3xl pt-20 md:pt-24 z-10"
+      >
+          {/* ... h1, p, form ... */}
+          <h1 className="text-5xl font-extrabold mb-4 tracking-tight text-[#1F3C42]">mothertongue</h1>
+          <p className="text-xl mb-6 font-light italic text-[#2E5A60]">"Not just learn. Live the language."</p>
+          <p className="mb-8 text-lg text-[#385C61]">Join the immersive platform for real-world fluency. Start with French, English, Spanish, or Italian.</p>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 justify-center items-center w-full max-w-md mx-auto">
+              <Input type="email" required placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-gray-400 bg-white/90 text-black placeholder:text-gray-500 focus:ring-1 focus:ring-[#2E5A60] focus:border-[#2E5A60] backdrop-blur-sm" aria-label="Email Address"/>
+              <Input type="text" required placeholder="Which country are you from?" value={country} onChange={(e) => setCountry(e.target.value)} className="w-full border border-gray-400 bg-white/90 text-black placeholder:text-gray-500 focus:ring-1 focus:ring-[#2E5A60] focus:border-[#2E5A60] backdrop-blur-sm" aria-label="Country"/>
+              <Input type="text" required placeholder="What language(s) do you want to learn?" value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full border border-gray-400 bg-white/90 text-black placeholder:text-gray-500 focus:ring-1 focus:ring-[#2E5A60] focus:border-[#2E5A60] backdrop-blur-sm" aria-label="Target Language"/>
+              <Button type="submit" disabled={isSubmitting} className="w-full bg-[#2E5A60] text-white hover:bg-[#24484D] focus:ring-2 focus:ring-offset-2 focus:ring-[#2E5A60] disabled:opacity-60 transition-opacity">
+                  {isSubmitting ? "Joining..." : "Join Waitlist"}
+              </Button>
+              <div className="h-6 mt-1 text-center">
+                  {submitSuccess && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-green-700 font-medium flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4"/> Success! Thanks for joining.</motion.div>)}
+                  {submitError && (<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-red-600 font-medium">{submitError}</motion.div>)}
+              </div>
+          </form>
+      </motion.div>
+
+      {/* Features Section */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 1 }}
+        className="mt-20 mb-16 w-full max-w-6xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 z-10"
+      >
+         {/* ... features.map ... */}
+         {features.map(({ title, desc, icon }) => (
+             <Card key={title} className="bg-white shadow-lg border border-gray-200/50 rounded-2xl transition-transform hover:scale-[1.02]">
+                 <CardContent className="p-6">
+                     <div className="flex flex-col items-start">{icon}<h3 className="text-xl font-semibold mb-2 text-[#1F3C42]">{title}</h3><p className="text-sm text-gray-700">{desc}</p></div>
+                 </CardContent>
+             </Card>
+         ))}
+      </motion.div>
+
+      {/* === Globe Section === */}
+      <div ref={globeSectionRef} className="w-full h-[75vh] mt-16 mb-10 z-0 relative cursor-grab">
+        <DynamicGlobe
+          ref={globeEl}
+          globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+          backgroundColor="rgba(0,0,0,0)"
+          pointsData={pins} // Will be empty initially, populated on submit
+          pointLat="lat"
+          pointLng="lng"
+          pointColor="color"
+          pointAltitude={0.01}
+          pointRadius="size"
+          pointsMerge={true}
+          pointsTransitionDuration={500}
+          pointLabel="label"
+          width={typeof window !== 'undefined' ? window.innerWidth : undefined}
+          height={typeof window !== 'undefined' ? window.innerHeight * 0.75 : undefined}
+        />
+      </div>
+
+       {/* Footer */}
+       <footer className="w-full text-center p-6 text-gray-600 text-xs mt-auto z-10">
+         © {new Date().getFullYear()} MotherTongue. All rights reserved.
       </footer>
     </div>
   );
