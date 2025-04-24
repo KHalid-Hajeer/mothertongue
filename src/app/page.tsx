@@ -151,7 +151,7 @@ export default function LandingPage() {
       >
           {/* ... h1, p, form ... */}
           <h1 className="text-5xl font-extrabold mb-4 tracking-tight text-[#1F3C42]">mothertongue</h1>
-          <p className="text-xl mb-6 font-light italic text-[#2E5A60]">"Not just learn. Live the language."</p>
+          <p className="text-xl mb-6 font-light italic text-[#2E5A60]">&quot;Not just learn. Live the language.&quot;</p>
           <p className="mb-8 text-lg text-[#385C61]">Join the immersive platform for real-world fluency. Start with French, English, Spanish, or Italian.</p>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 justify-center items-center w-full max-w-md mx-auto">
               <Input type="email" required placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border border-gray-400 bg-white/90 text-black placeholder:text-gray-500 focus:ring-1 focus:ring-[#2E5A60] focus:border-[#2E5A60] backdrop-blur-sm" aria-label="Email Address"/>
