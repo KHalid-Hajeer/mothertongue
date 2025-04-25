@@ -1,27 +1,23 @@
+// src/app/api/waitlist/route.ts
 import { createClient } from '@supabase/supabase-js'
-import { NextApiRequest, NextApiResponse } from 'next'
+import { NextRequest, NextResponse } from 'next/server'
 
-// Initialize Supabase client with URL and API key
 const supabase = createClient(
-  process.env.SUPABASE_URL || '', 
-  process.env.SUPABASE_API_KEY || ''
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_KEY || ''
 )
 
-export async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    const { email, nationality, language } = req.body
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  const { email, nationality, language } = body
 
-    // Insert data into Supabase
-    const { data, error } = await supabase
-      .from('waitlist')
-      .insert([{ email, nationality, language }])
+  const { data, error } = await supabase
+    .from('waitlist')
+    .insert([{ email, nationality, language }])
 
-    if (error) {
-      return res.status(400).json({ error: error.message })
-    }
-
-    return res.status(200).json({ message: 'Entry added successfully!', data })
-  } else {
-    return res.status(405).json({ error: 'Method not allowed' }) // Handling other methods
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 })
   }
+
+  return NextResponse.json({ message: 'Entry added successfully!', data }, { status: 200 })
 }
