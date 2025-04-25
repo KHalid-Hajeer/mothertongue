@@ -74,56 +74,60 @@ export default function LandingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !country || !language) {
-        setSubmitError("Please fill in all required fields.");
-        setTimeout(() => setSubmitError(null), 3000);
-        return;
+      setSubmitError("Please fill in all required fields.");
+      setTimeout(() => setSubmitError(null), 3000);
+      return;
     }
+  
     setIsSubmitting(true);
     setSubmitSuccess(false);
     setSubmitError(null);
-    console.log("Waitlist Entry:", { email, country, language });
-    
+    console.log("Waitlist Entry:", { email, nationality: country, languages_to_learn: language });
+  
     try {
-        // Insert into the Supabase database
-        const { data, error } = await supabase
-            .from('waitlist') // Assuming you have a table named "waitlist"
-            .insert([
-                {
-                    email,
-                    country,
-                    language,
-                    created_at: new Date().toISOString(), // You may want to add a timestamp
-                }
-            ]);
-
-        if (error) {
-            throw error;
-        }
-
-        // Log success, insert new pin, and reset form
-        console.log("Successfully submitted to waitlist!", data);
-        
-        const { lat, lng } = getCoordsForCountry(country);
-        const newPin: Pin = {
-            lat, lng, size: 0.6, color: "#FF5C5C", label: `Signup from ${country}!`
-        };
-        setPins((prev) => [...prev, newPin]);
-        globeSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (globeEl.current) {
-            globeEl.current.pointOfView({ lat: newPin.lat, lng: newPin.lng, altitude: 1.5 }, 1500);
-        }
-        setEmail(""); setCountry(""); setLanguage("");
-        setSubmitSuccess(true);
-        setTimeout(() => setSubmitSuccess(false), 4000);
+      // Insert into the Supabase database
+      const { data, error } = await supabase
+        .from('waitlist') // Your table
+        .insert([
+          {
+            email,
+            nationality: country,
+            languages_to_learn: language,
+          },
+        ]);
+  
+      if (error) {
+        throw error;
+      }
+  
+      // Log success, insert new pin, and reset form
+      console.log("Successfully submitted to waitlist!", data);
+  
+      const { lat, lng } = getCoordsForCountry(country);
+      const newPin: Pin = {
+        lat, lng, size: 0.6, color: "#FF5C5C", label: `Signup from ${country}!`,
+      };
+      setPins((prev) => [...prev, newPin]);
+      globeSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  
+      if (globeEl.current) {
+        globeEl.current.pointOfView({ lat: newPin.lat, lng: newPin.lng, altitude: 1.5 }, 1500);
+      }
+  
+      setEmail("");
+      setCountry("");
+      setLanguage("");
+      setSubmitSuccess(true);
+      setTimeout(() => setSubmitSuccess(false), 4000);
     } catch (error) {
-        console.error("Submission failed:", error);
-        setSubmitError("Submission failed. Please try again.");
-        setTimeout(() => setSubmitError(null), 4000);
+      console.error("Submission failed:", error);
+      setSubmitError("Submission failed. Please try again.");
+      setTimeout(() => setSubmitError(null), 4000);
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
-};
-
+  };
+  
   // --- Effects ---
   useEffect(() => {
     // Initial globe setup
@@ -138,11 +142,6 @@ export default function LandingPage() {
             globeEl.current.pointOfView({ lat: 20, lng: 0, altitude: 2.2 }, 2000);
         }
     }, 100);
-
-    // --- REMOVED INITIAL PINS GENERATION ---
-    // const initialPins: Pin[] = Array.from({ length: 15 }).map(() => ({ ... }));
-    // setPins(initialPins);
-    // --- END REMOVAL ---
 
     return () => clearTimeout(timerId);
   }, []); // Empty dependency array ensures this runs only once on mount
